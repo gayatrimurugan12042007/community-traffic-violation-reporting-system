@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Reporter Portal - Community Traffic Violations</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- AWS UI / Cloudscape-like minimal styling via CDN placeholder -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@cloudscape-design/global-styles/index.css"
+    />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      body {
+        font-family: 'Amazon Ember', system-ui, -apple-system, BlinkMacSystemFont,
+          'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #020617;
+        color: #e5e7eb;
+      }
+      header {
+        background: #111827;
+        color: #f9fafb;
+        padding: 1rem;
+        border-bottom: 1px solid #1f2937;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 1.5rem auto;
+        padding: 1.25rem;
+        background: #020617;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: 1.25rem;
+      }
+      .card {
+        border-radius: 12px;
+        padding: 1.25rem;
+        background: #020617;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.9);
+        border: 1px solid #1f2937;
+      }
+      .card h2 {
+        margin-top: 0;
+        color: #f9fafb;
+      }
+      .card p {
+        color: #9ca3af;
+      }
+      .button {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        border: none;
+        cursor: pointer;
+        background: #ff9900;
+        color: #111827;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.7);
+      }
+      .button.secondary {
+        background: #111827;
+        color: #f9fafb;
+        border: 1px solid #374151;
+      }
+      #map {
+        width: 100%;
+        height: 260px;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+        border: 1px solid #1f2937;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      label {
+        font-weight: 600;
+        color: #e5e7eb;
+      }
+      input,
+      select,
+      textarea {
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        border: 1px solid #374151;
+        font-family: inherit;
+        background: #020617;
+        color: #f9fafb;
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: #6b7280;
+      }
+      small.note {
+        color: #9ca3af;
+      }
+      #location-display {
+        margin-top: 0.25rem;
+        font-size: 0.85rem;
+        color: #9ca3af;
+      }
+      .legal {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        background: #020617;
+        border-left: 3px solid #2563eb;
+        font-size: 0.9rem;
+        color: #9ca3af;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.9);
+        border-radius: 8px;
+        border: 1px solid #1f2937;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Reporter Portal</h1>
+    </header>
+    <main class="container">
+      <div class="grid">
+        <section class="card">
+          <h2>Submit Traffic Violation</h2>
+          <p>
+            Submit a traffic violation with mandatory photo/video proof and a precise location
+            pin on the map.
+          </p>
+          <form id="report-form">
+            <label>Name</label>
+            <input type="text" id="reporter-name" required />
+
+            <label>Email</label>
+            <input type="email" id="reporter-email" required />
+
+            <label>Phone</label>
+            <input type="tel" id="reporter-phone" required />
+
+            <label>Vehicle Number (India)</label>
+            <input type="text" id="vehicle-number" placeholder="e.g. TN01AB1234" required />
+
+            <label>Violation Type</label>
+            <select id="violation-type" required>
+              <option value="">Select...</option>
+              <option>Signal Jumping</option>
+              <option>No Helmet / Seatbelt</option>
+              <option>Wrong Side / Lane Violation</option>
+              <option>Overspeeding</option>
+              <option>Parking Violation</option>
+            </select>
+
+            <label>Description (optional)</label>
+            <textarea id="description" rows="3"></textarea>
+
+            <label>Location</label>
+            <div id="map"></div>
+            <div id="location-display">Click on the map or drag the marker to pin the location.</div>
+            <small class="note">Location is captured using GPS when available, and can be refined manually.</small>
+
+            <label>Upload Photo/Video Evidence</label>
+            <input type="file" id="media-files" multiple accept="image/*,video/*" required />
+
+            <button class="button" type="submit">Submit Report</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Other Portals</h2>
+          <p>Use the appropriate portal for reviewing or paying fines.</p>
+          <button class="button secondary" type="button" onclick="openPolicePortal()">
+            Open Police Portal
+          </button>
+
+          <div style="height:0.75rem"></div>
+
+          <button class="button secondary" type="button" onclick="openOwnerPortal()">
+            Open Owner Portal
+          </button>
+        </section>
+      </div>
+
+      <section class="legal">
+        <strong>Legal & Safety Note:</strong>
+        <p>
+          This system does <strong>not</strong> issue automatic fines. All violation reports
+          remain in <em>"Pending Review"</em> state until manually reviewed and approved by
+          an authorized police officer. Any fine shown in this demo is for educational
+          purposes only and uses a simulated payment flow — no real money is transferred.
+        </p>
+      </section>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/main.js"></script>
+  </body>
+</html>
